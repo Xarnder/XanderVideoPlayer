@@ -17,15 +17,21 @@
         <vlc:VideoView x:Name="videoView" Grid.Row="0" />
 
         <Border Grid.Row="1" Background="Black" ClipToBounds="False">
-            <TextBlock x:Name="SubtitleText" 
-                       Text="Open a video file to begin..." 
-                       Foreground="White" FontSize="32" FontWeight="SemiBold"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" 
-                       TextWrapping="Wrap" TextAlignment="Center">
-                <TextBlock.RenderTransform>
-                    <TranslateTransform x:Name="SubTransform" Y="0" />
-                </TextBlock.RenderTransform>
-            </TextBlock>
+            <Grid>
+                <ProgressBar x:Name="ExtractionProgress" Height="4" VerticalAlignment="Top" 
+                             Background="Transparent" BorderThickness="0" Foreground="#1E90FF"
+                             IsIndeterminate="True" Visibility="Collapsed" />
+                <TextBlock x:Name="SubtitleText" 
+                           Text="Open a video file to begin..." 
+                           Foreground="White" FontSize="32" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" 
+                           TextWrapping="Wrap" TextAlignment="Center"
+                           MaxWidth="900">
+                    <TextBlock.RenderTransform>
+                        <TranslateTransform x:Name="SubTransform" Y="0" />
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+            </Grid>
         </Border>
 
         <Grid x:Name="ControlsGrid" Grid.Row="2" Height="50" Background="#202020">
@@ -38,6 +44,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" x:Name="StatsColumn"/>
             </Grid.ColumnDefinitions>
 
             <Button x:Name="OpenFileBtn" Grid.Column="0" Content="Open Video" Foreground="White" Background="#1E90FF" 
@@ -72,12 +79,14 @@
 
             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="5,5,10,5">
                 <TextBlock Text="Internal Sub:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox x:Name="SubTrackCombo" Width="50" SelectionChanged="SubTrackCombo_SelectionChanged" SelectedIndex="0">
-                    <ComboBoxItem Content="1"/>
-                    <ComboBoxItem Content="2"/>
-                    <ComboBoxItem Content="3"/>
-                    <ComboBoxItem Content="4"/>
+                <ComboBox x:Name="SubTrackCombo" Width="120" SelectionChanged="SubTrackCombo_SelectionChanged" SelectedIndex="0">
                 </ComboBox>
+            </StackPanel>
+
+            <StackPanel Grid.Column="8" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
+                <TextBlock x:Name="SizeStatus" Text="S:32" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
+                <TextBlock x:Name="HeightStatus" Text="H:0" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
+                <TextBlock x:Name="WidthStatus" Text="W:900" Foreground="#888888" FontSize="11"/>
             </StackPanel>
         </Grid>
     </Grid>

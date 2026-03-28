@@ -37,7 +37,8 @@ namespace XanderVideoPlayer
             {
                 "--vout=direct3d11",
                 "--avcodec-hw=d3d11va",
-                "--sub-track=-1"
+                "--sub-track=-1",
+                "--no-spu"
             };
 
             _libVLC = new LibVLC(initOptions);
@@ -63,8 +64,13 @@ namespace XanderVideoPlayer
             {
                 _moviePath = openFileDialog.FileName;
 
+                // Stop current video and clear its media so it's removed from the screen
+                if (_mediaPlayer.IsPlaying) _mediaPlayer.Stop();
+                _mediaPlayer.Media = null;
+
                 // NEW: Better visual feedback!
                 SubtitleText.Text = "⏳ Extracting Subtitles... Please wait (this may take a few seconds).";
+                ExtractionProgress.Visibility = Visibility.Visible;
 
                 TimelineSlider.Value = 0;
                 SubTrackCombo.SelectionChanged -= SubTrackCombo_SelectionChanged;
@@ -116,11 +122,12 @@ namespace XanderVideoPlayer
             }
         }
 
-        // --- AUDIO TRACK LOGIC ---
+        // --- AUDIO & SUBTITLE TRACK LOGIC ---
         private void MediaPlayer_Playing(object? sender, EventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
+                // Populate Audio Tracks
                 AudioCombo.Items.Clear();
                 foreach (var track in _mediaPlayer.AudioTrackDescription)
                 {
@@ -141,6 +148,27 @@ namespace XanderVideoPlayer
                         _mediaPlayer.SetAudioTrack(trackId);
                     }
                 }
+
+                // Populate Subtitle Tracks
+                SubTrackCombo.SelectionChanged -= SubTrackCombo_SelectionChanged;
+                SubTrackCombo.Items.Clear();
+                int idx = 0;
+                foreach (var track in _mediaPlayer.SpuDescription)
+                {
+                    if (track.Id != -1)
+                    {
+                        ComboBoxItem item = new ComboBoxItem();
+                        item.Content = $"{track.Name} [#{++idx}]";
+                        item.Tag = idx - 1; // Internal index for ffmpeg
+                        SubTrackCombo.Items.Add(item);
+                    }
+                }
+                if (SubTrackCombo.Items.Count > 0) SubTrackCombo.SelectedIndex = 0;
+                SubTrackCombo.SelectionChanged += SubTrackCombo_SelectionChanged;
+
+                // Ensure internal subtitles are disabled
+                _mediaPlayer.SetSpu(-1);
+                UpdateSubtitleStats();
             });
         }
 
@@ -217,10 +245,19 @@ namespace XanderVideoPlayer
         // --- SUBTITLE EXTRACTION LOGIC ---
         private void SubTrackCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!IsLoaded || string.IsNullOrEmpty(_moviePath) || SubTrackCombo.SelectedIndex == -1) return;
+            if (!IsLoaded || string.IsNullOrEmpty(_moviePath) || SubTrackCombo.SelectedItem == null) return;
 
-            int trackIndex = SubTrackCombo.SelectedIndex;
-            SubtitleText.Text = $"⏳ Extracting Track {trackIndex + 1}... Please wait.";
+            int trackIndex = 0;
+            string trackName = "Selected Track";
+            
+            if (SubTrackCombo.SelectedItem is ComboBoxItem item)
+            {
+                trackIndex = (int)item.Tag;
+                trackName = item.Content.ToString() ?? "Selected Track";
+            }
+
+            SubtitleText.Text = $"⏳ Extracting {trackName}... Please wait.";
+            ExtractionProgress.Visibility = Visibility.Visible;
 
             Task.Run(() =>
             {
@@ -249,6 +286,7 @@ namespace XanderVideoPlayer
 
         private void LoadSubtitles(string srtPath)
         {
+            ExtractionProgress.Visibility = Visibility.Collapsed;
             _subtitles.Clear();
             if (!File.Exists(srtPath) || new FileInfo(srtPath).Length == 0)
             {
@@ -333,6 +371,30 @@ namespace XanderVideoPlayer
                 SubPosSlider.Value = Math.Min(SubPosSlider.Maximum, SubPosSlider.Value + 10);
                 e.Handled = true;
             }
+            else if (e.Key == System.Windows.Input.Key.W)
+            {
+                SubtitleText.FontSize += 2;
+                UpdateSubtitleStats();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.S)
+            {
+                SubtitleText.FontSize = Math.Max(12, SubtitleText.FontSize - 2);
+                UpdateSubtitleStats();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.OemCloseBrackets || e.Key == System.Windows.Input.Key.Oem6)
+            {
+                SubtitleText.MaxWidth += 50;
+                UpdateSubtitleStats();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.OemOpenBrackets)
+            {
+                SubtitleText.MaxWidth = Math.Max(200, SubtitleText.MaxWidth - 50);
+                UpdateSubtitleStats();
+                e.Handled = true;
+            }
         }
 
         private void ToggleFullscreen()
@@ -361,7 +423,16 @@ namespace XanderVideoPlayer
             if (SubTransform != null)
             {
                 SubTransform.Y = e.NewValue;
+                UpdateSubtitleStats();
             }
+        }
+
+        private void UpdateSubtitleStats()
+        {
+            if (SizeStatus == null || HeightStatus == null || WidthStatus == null) return;
+            SizeStatus.Text = $"S:{(int)SubtitleText.FontSize}";
+            HeightStatus.Text = $"H:{(int)SubPosSlider.Value}";
+            WidthStatus.Text = $"W:{(int)SubtitleText.MaxWidth}";
         }
     }
 }

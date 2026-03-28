@@ -10,13 +10,12 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition x:Name="SubtitleRow" Height="120" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <vlc:VideoView x:Name="videoView" Grid.Row="0" />
+        <vlc:VideoView x:Name="videoView" Grid.Row="0" Margin="0,0,0,120" />
 
-        <Border Grid.Row="1" Background="Black" ClipToBounds="False">
+        <Border Grid.Row="0" VerticalAlignment="Bottom" Height="Auto" MinHeight="120" Background="Black" ClipToBounds="False">
             <Grid>
                 <ProgressBar x:Name="ExtractionProgress" Height="4" VerticalAlignment="Top" 
                              Background="Transparent" BorderThickness="0" Foreground="#1E90FF"
@@ -34,7 +33,7 @@
             </Grid>
         </Border>
 
-        <Grid x:Name="ControlsGrid" Grid.Row="2" Height="50" Background="#202020">
+        <Grid x:Name="ControlsGrid" Grid.Row="1" Height="50" Background="#202020">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>

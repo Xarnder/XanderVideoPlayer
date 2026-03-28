@@ -397,6 +397,11 @@ namespace XanderVideoPlayer
             }
         }
 
+        private void FullscreenBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleFullscreen();
+        }
+
         private void ToggleFullscreen()
         {
             _isFullscreen = !_isFullscreen;

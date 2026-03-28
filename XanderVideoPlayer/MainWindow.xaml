@@ -43,6 +43,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" x:Name="FullscreenColumn"/>
                 <ColumnDefinition Width="Auto" x:Name="StatsColumn"/>
             </Grid.ColumnDefinitions>
 
@@ -82,7 +83,10 @@
                 </ComboBox>
             </StackPanel>
 
-            <StackPanel Grid.Column="8" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
+            <Button x:Name="FullscreenBtn" Grid.Column="8" Content="Fullscreen" Foreground="White" Background="#404040" 
+                    BorderThickness="0" Margin="5,5,5,5" Width="75" Click="FullscreenBtn_Click" Focusable="False"/>
+
+            <StackPanel Grid.Column="9" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
                 <TextBlock x:Name="SizeStatus" Text="S:32" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
                 <TextBlock x:Name="HeightStatus" Text="H:0" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
                 <TextBlock x:Name="WidthStatus" Text="W:900" Foreground="#888888" FontSize="11"/>

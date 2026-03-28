@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -135,9 +135,11 @@ namespace XanderVideoPlayer
 
                 if (AudioCombo.Items.Count > 0)
                 {
-                    AudioCombo.SelectionChanged -= AudioCombo_SelectionChanged;
                     AudioCombo.SelectedIndex = 0;
-                    AudioCombo.SelectionChanged += AudioCombo_SelectionChanged;
+                    if (AudioCombo.SelectedItem is ComboBoxItem item && item.Tag is int trackId)
+                    {
+                        _mediaPlayer.SetAudioTrack(trackId);
+                    }
                 }
             });
         }
@@ -304,6 +306,33 @@ namespace XanderVideoPlayer
             {
                 ToggleFullscreen();
             }
+            else if (e.Key == System.Windows.Input.Key.Space)
+            {
+                PlayPauseBtn_Click(null!, null!);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Right)
+            {
+                long newTime = _mediaPlayer.Time + 10000;
+                _mediaPlayer.Time = Math.Min(newTime, _mediaPlayer.Length);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Left)
+            {
+                long newTime = _mediaPlayer.Time - 10000;
+                _mediaPlayer.Time = Math.Max(newTime, 0);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Up)
+            {
+                SubPosSlider.Value = Math.Max(SubPosSlider.Minimum, SubPosSlider.Value - 10);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Down)
+            {
+                SubPosSlider.Value = Math.Min(SubPosSlider.Maximum, SubPosSlider.Value + 10);
+                e.Handled = true;
+            }
         }
 
         private void ToggleFullscreen()
@@ -325,6 +354,14 @@ namespace XanderVideoPlayer
             }
 
             videoView.MediaPlayer = _mediaPlayer;
+        }
+
+        private void SubPosSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (SubTransform != null)
+            {
+                SubTransform.Y = e.NewValue;
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿<Window x:Class="XanderVideoPlayer.MainWindow"
+<Window x:Class="XanderVideoPlayer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
@@ -9,22 +9,27 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="110" />
+            <RowDefinition x:Name="SubtitleRow" Height="120" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <vlc:VideoView x:Name="videoView" Grid.Row="0" />
 
-        <Border Grid.Row="1" Background="Black">
+        <Border Grid.Row="1" Background="Black" ClipToBounds="False">
             <TextBlock x:Name="SubtitleText" 
                        Text="Open a video file to begin..." 
                        Foreground="White" FontSize="32" FontWeight="SemiBold"
                        HorizontalAlignment="Center" VerticalAlignment="Center" 
-                       TextWrapping="Wrap" TextAlignment="Center"/>
+                       TextWrapping="Wrap" TextAlignment="Center">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform x:Name="SubTransform" Y="0" />
+                </TextBlock.RenderTransform>
+            </TextBlock>
         </Border>
 
         <Grid x:Name="ControlsGrid" Grid.Row="2" Height="50" Background="#202020">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -35,29 +40,36 @@
             </Grid.ColumnDefinitions>
 
             <Button x:Name="OpenFileBtn" Grid.Column="0" Content="Open Video" Foreground="White" Background="#1E90FF" 
-                    BorderThickness="0" Margin="10,5,5,5" Width="75" FontWeight="Bold" Click="OpenFileBtn_Click"/>
+                    BorderThickness="0" Margin="10,5,5,5" Width="75" FontWeight="Bold" Click="OpenFileBtn_Click" Focusable="False"/>
 
             <Button x:Name="LoadSubBtn" Grid.Column="1" Content="Load .SRT" Foreground="White" Background="#FF8C00" 
-                    BorderThickness="0" Margin="5,5,5,5" Width="70" FontWeight="Bold" Click="LoadSubBtn_Click"/>
+                    BorderThickness="0" Margin="5,5,5,5" Width="70" FontWeight="Bold" Click="LoadSubBtn_Click" Focusable="False"/>
 
-            <Button x:Name="PlayPauseBtn" Grid.Column="2" Content="Play" Foreground="White" Background="#404040" 
-                    BorderThickness="0" Margin="5,5,0,5" Width="60" Click="PlayPauseBtn_Click"/>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="5,5,10,5" VerticalAlignment="Center">
+                <TextBlock Text="Sub Pos:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <Slider x:Name="SubPosSlider" Width="80" Minimum="-500" Maximum="100" Value="0" 
+                        TickFrequency="1" IsSnapToTickEnabled="True"
+                        ValueChanged="SubPosSlider_ValueChanged" Focusable="False"/>
+            </StackPanel>
 
-            <Button x:Name="SkipBtn" Grid.Column="3" Content="+10s" Foreground="White" Background="#404040" 
-                    BorderThickness="0" Margin="5,5,5,5" Width="50" Click="SkipBtn_Click"/>
+            <Button x:Name="PlayPauseBtn" Grid.Column="3" Content="Play" Foreground="White" Background="#404040" 
+                    BorderThickness="0" Margin="5,5,0,5" Width="60" Click="PlayPauseBtn_Click" Focusable="False"/>
 
-            <Slider x:Name="TimelineSlider" Grid.Column="4" Minimum="0" Margin="10,0" 
+            <Button x:Name="SkipBtn" Grid.Column="4" Content="+10s" Foreground="White" Background="#404040" 
+                    BorderThickness="0" Margin="5,5,5,5" Width="50" Click="SkipBtn_Click" Focusable="False"/>
+
+            <Slider x:Name="TimelineSlider" Grid.Column="5" Minimum="0" Margin="10,0" 
                     VerticalAlignment="Center" IsMoveToPointEnabled="True"
                     Thumb.DragStarted="TimelineSlider_DragStarted"
                     Thumb.DragCompleted="TimelineSlider_DragCompleted"
-                    ValueChanged="TimelineSlider_ValueChanged"/>
+                    ValueChanged="TimelineSlider_ValueChanged" Focusable="False"/>
 
-            <StackPanel Grid.Column="5" Orientation="Horizontal" Margin="5">
+            <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="5">
                 <TextBlock Text="Audio:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
                 <ComboBox x:Name="AudioCombo" Width="100" SelectionChanged="AudioCombo_SelectionChanged" Margin="0,0,10,0"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="5,5,10,5">
+            <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="5,5,10,5">
                 <TextBlock Text="Internal Sub:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
                 <ComboBox x:Name="SubTrackCombo" Width="50" SelectionChanged="SubTrackCombo_SelectionChanged" SelectedIndex="0">
                     <ComboBoxItem Content="1"/>

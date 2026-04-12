@@ -101,13 +101,19 @@
                 <Button x:Name="CropDecBtn" Content="-" Foreground="White" Background="#404040" BorderThickness="0" Width="25" Click="CropDecBtn_Click" Focusable="False"/>
             </StackPanel>
 
-            <Button x:Name="FullscreenBtn" Grid.Column="9" Content="Fullscreen" Foreground="White" Background="#404040" 
+            <StackPanel Grid.Column="9" Orientation="Horizontal" Margin="5,5,10,5">
+                <TextBlock Text="Width:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <Button x:Name="SubWidthIncBtn" Content="+" Foreground="White" Background="#404040" BorderThickness="0" Width="25" Click="SubWidthIncBtn_Click" Focusable="False" Margin="0,0,2,0"/>
+                <Button x:Name="SubWidthDecBtn" Content="-" Foreground="White" Background="#404040" BorderThickness="0" Width="25" Click="SubWidthDecBtn_Click" Focusable="False"/>
+            </StackPanel>
+
+            <Button x:Name="FullscreenBtn" Grid.Column="10" Content="Fullscreen" Foreground="White" Background="#404040" 
                     BorderThickness="0" Margin="5,5,5,5" Width="75" Click="FullscreenBtn_Click" Focusable="False"/>
 
-            <Button x:Name="HelpBtn" Grid.Column="10" Content="?" Foreground="White" Background="#1E90FF" 
+            <Button x:Name="HelpBtn" Grid.Column="11" Content="?" Foreground="White" Background="#1E90FF" 
                     BorderThickness="0" Margin="5,5,5,5" Width="25" FontWeight="Bold" Click="HelpBtn_Click" Focusable="False"/>
 
-            <StackPanel Grid.Column="11" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
+            <StackPanel Grid.Column="12" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
                 <TextBlock x:Name="SizeStatus" Text="S:32" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
                 <TextBlock x:Name="HeightStatus" Text="H:0" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
                 <TextBlock x:Name="WidthStatus" Text="W:900" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>

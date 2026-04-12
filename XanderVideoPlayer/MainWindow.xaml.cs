@@ -66,13 +66,18 @@ namespace XanderVideoPlayer
             {
                 _moviePath = openFileDialog.FileName;
 
-                // Stop current video and clear its media so it's removed from the screen
+                // Stop current video
                 if (_mediaPlayer.IsPlaying) _mediaPlayer.Stop();
                 _mediaPlayer.Media = null;
 
-                // NEW: Better visual feedback!
-                SubtitleText.Text = "⏳ Extracting Subtitles... Please wait (this may take a few seconds).";
+                // Disable UI to prevent double-loading
+                OpenFileBtn.IsEnabled = false;
+                LoadSubBtn.IsEnabled = false;
+                SubTrackCombo.IsEnabled = false;
+
+                SubtitleText.Text = "⏳ Step 1: Preparing to extract subtitles...";
                 ExtractionProgress.Visibility = Visibility.Visible;
+                ExtractionProgress.IsIndeterminate = true;
 
                 TimelineSlider.Value = 0;
                 SubTrackCombo.SelectionChanged -= SubTrackCombo_SelectionChanged;
@@ -82,14 +87,60 @@ namespace XanderVideoPlayer
 
                 Task.Run(() =>
                 {
-                    ExtractSubtitles(_moviePath, _tempSubPath, 0);
-                    Dispatcher.Invoke(() =>
+                    try
                     {
-                        LoadSubtitles(_tempSubPath);
-                        using var media = new Media(_libVLC, _moviePath, FromType.FromPath);
-                        _mediaPlayer.Play(media);
-                        PlayPauseBtn.Content = "Pause";
-                    });
+                        // Pre-check for subtitle tracks on the media object
+                        bool hasSubtitles = false;
+                        using (var media = new Media(_libVLC, _moviePath, FromType.FromPath))
+                        {
+                            media.Parse();
+                            foreach (var track in media.Tracks)
+                            {
+                                if (track.TrackType == TrackType.Text)
+                                {
+                                    hasSubtitles = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (hasSubtitles)
+                        {
+                            ExtractSubtitles(_moviePath, _tempSubPath, 0);
+                        }
+                        else
+                        {
+                            // Delete old temp file if it exists to avoid showing old subs
+                            try { if (File.Exists(_tempSubPath)) File.Delete(_tempSubPath); } catch { }
+                        }
+                        
+                        Dispatcher.Invoke(() =>
+                        {
+                            SubtitleText.Text = hasSubtitles ? "⏳ Step 2: Loading subtitles into player..." : "⏳ Step 2: Finalizing video playback...";
+                            LoadSubtitles(_tempSubPath);
+
+                            using var media = new Media(_libVLC, _moviePath, FromType.FromPath);
+                            _mediaPlayer.Play(media);
+                            PlayPauseBtn.Content = "Pause";
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            SubtitleText.Text = $"⚠️ Error loading video: {ex.Message}";
+                            ExtractionProgress.Visibility = Visibility.Collapsed;
+                        });
+                    }
+                    finally
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            OpenFileBtn.IsEnabled = true;
+                            LoadSubBtn.IsEnabled = true;
+                            SubTrackCombo.IsEnabled = true;
+                        });
+                    }
                 });
             }
         }
@@ -155,7 +206,11 @@ namespace XanderVideoPlayer
                 SubTrackCombo.SelectionChanged -= SubTrackCombo_SelectionChanged;
                 SubTrackCombo.Items.Clear();
                 int idx = 0;
-                foreach (var track in _mediaPlayer.SpuDescription)
+                int bestIndex = -1;
+                int bestPriority = -1; // 3: SDH, 2: Forced, 1: English, 0: Other
+
+                var tracks = _mediaPlayer.SpuDescription;
+                foreach (var track in tracks)
                 {
                     if (track.Id != -1)
                     {
@@ -163,9 +218,30 @@ namespace XanderVideoPlayer
                         item.Content = $"{track.Name} [#{++idx}]";
                         item.Tag = idx - 1; // Internal index for ffmpeg
                         SubTrackCombo.Items.Add(item);
+
+                        // Prioritization logic
+                        string name = track.Name.ToLower();
+                        int priority = 0;
+                        if (name.Contains("english") || name.Contains("eng"))
+                        {
+                            priority = 1;
+                            if (name.Contains("sdh")) priority = 3;
+                            else if (name.Contains("forced")) priority = 2;
+                        }
+
+                        if (priority > bestPriority)
+                        {
+                            bestPriority = priority;
+                            bestIndex = idx - 1;
+                        }
                     }
                 }
-                if (SubTrackCombo.Items.Count > 0) SubTrackCombo.SelectedIndex = 0;
+
+                if (SubTrackCombo.Items.Count > 0)
+                {
+                    // Select the best track found, otherwise default to the first one
+                    SubTrackCombo.SelectedIndex = Math.Max(0, bestIndex);
+                }
                 SubTrackCombo.SelectionChanged += SubTrackCombo_SelectionChanged;
 
                 // Ensure internal subtitles are disabled
@@ -258,19 +334,58 @@ namespace XanderVideoPlayer
                 trackName = item.Content.ToString() ?? "Selected Track";
             }
 
-            SubtitleText.Text = $"⏳ Extracting {trackName}... Please wait.";
+            // Disable UI to prevent overlapping extractions
+            OpenFileBtn.IsEnabled = false;
+            LoadSubBtn.IsEnabled = false;
+            SubTrackCombo.IsEnabled = false;
+
+            SubtitleText.Text = $"⏳ Step 1: Extracting {trackName}... Please wait.";
             ExtractionProgress.Visibility = Visibility.Visible;
+            ExtractionProgress.IsIndeterminate = true;
 
             Task.Run(() =>
             {
-                ExtractSubtitles(_moviePath, _tempSubPath, trackIndex);
-                Dispatcher.Invoke(() => LoadSubtitles(_tempSubPath));
+                try
+                {
+                    ExtractSubtitles(_moviePath, _tempSubPath, trackIndex);
+                    Dispatcher.Invoke(() => 
+                    {
+                        SubtitleText.Text = $"⏳ Step 2: Loading {trackName}...";
+                        LoadSubtitles(_tempSubPath);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => 
+                    {
+                        SubtitleText.Text = $"⚠️ Error changing track: {ex.Message}";
+                        ExtractionProgress.Visibility = Visibility.Collapsed;
+                    });
+                }
+                finally
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        OpenFileBtn.IsEnabled = true;
+                        LoadSubBtn.IsEnabled = true;
+                        SubTrackCombo.IsEnabled = true;
+                    });
+                }
             });
         }
 
         private void ExtractSubtitles(string videoPath, string outputPath, int trackIndex)
         {
-            if (File.Exists(outputPath)) File.Delete(outputPath);
+            try
+            {
+                if (File.Exists(outputPath)) File.Delete(outputPath);
+            }
+            catch (IOException)
+            {
+                // If it's locked, we try a slightly different name or just wait
+                outputPath = Path.Combine(Path.GetDirectoryName(outputPath) ?? "", "temp_" + Guid.NewGuid().ToString().Substring(0, 4) + ".srt");
+                _tempSubPath = outputPath; // Update the global path for LoadSubtitles to find it
+            }
 
             var process = new Process
             {
@@ -282,6 +397,7 @@ namespace XanderVideoPlayer
                     CreateNoWindow = true
                 }
             };
+
             process.Start();
             process.WaitForExit();
         }
@@ -391,14 +507,12 @@ namespace XanderVideoPlayer
             }
             else if (e.Key == System.Windows.Input.Key.OemCloseBrackets || e.Key == System.Windows.Input.Key.Oem6)
             {
-                SubtitleText.MaxWidth += 50;
-                UpdateSubtitleStats();
+                ChangeSubWidth(50);
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.OemOpenBrackets)
             {
-                SubtitleText.MaxWidth = Math.Max(200, SubtitleText.MaxWidth - 50);
-                UpdateSubtitleStats();
+                ChangeSubWidth(-50);
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.OemPlus || e.Key == System.Windows.Input.Key.Add)
@@ -527,6 +641,25 @@ namespace XanderVideoPlayer
             }
 
             videoView.MediaPlayer = _mediaPlayer;
+        }
+
+        private void SubWidthIncBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeSubWidth(50);
+        }
+
+        private void SubWidthDecBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeSubWidth(-50);
+        }
+
+        private void ChangeSubWidth(double delta)
+        {
+            if (SubtitleText != null)
+            {
+                SubtitleText.MaxWidth = Math.Max(200, SubtitleText.MaxWidth + delta);
+                UpdateSubtitleStats();
+            }
         }
 
         private void SubPosSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

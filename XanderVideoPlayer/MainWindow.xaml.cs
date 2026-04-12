@@ -27,6 +27,8 @@ namespace XanderVideoPlayer
         private bool _isFullscreen = false;
         private string _moviePath = "";
         private string _tempSubPath = "temp_subs.srt";
+        private double _cropValue = 0;
+        private double _subAreaHeight = 120;
 
         public MainWindow()
         {
@@ -363,12 +365,16 @@ namespace XanderVideoPlayer
             }
             else if (e.Key == System.Windows.Input.Key.Up)
             {
-                SubPosSlider.Value = Math.Max(SubPosSlider.Minimum, SubPosSlider.Value - 10);
+                // Skip forward 1 minute
+                long newTime = _mediaPlayer.Time + 60000;
+                _mediaPlayer.Time = Math.Min(newTime, _mediaPlayer.Length);
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Down)
             {
-                SubPosSlider.Value = Math.Min(SubPosSlider.Maximum, SubPosSlider.Value + 10);
+                // Skip backward 1 minute
+                long newTime = _mediaPlayer.Time - 60000;
+                _mediaPlayer.Time = Math.Max(newTime, 0);
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.W)
@@ -395,6 +401,106 @@ namespace XanderVideoPlayer
                 UpdateSubtitleStats();
                 e.Handled = true;
             }
+            else if (e.Key == System.Windows.Input.Key.OemPlus || e.Key == System.Windows.Input.Key.Add)
+            {
+                ChangeCrop(5);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.OemMinus || e.Key == System.Windows.Input.Key.Subtract)
+            {
+                ChangeCrop(-5);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.M)
+            {
+                ChangeSubAreaHeight(10);
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.N)
+            {
+                ChangeSubAreaHeight(-10);
+                e.Handled = true;
+            }
+        }
+
+        private void ChangeSubAreaHeight(double delta)
+        {
+            _subAreaHeight = Math.Max(0, _subAreaHeight + delta);
+            UpdateSubtitleLayout();
+        }
+
+        private void UpdateSubtitleLayout()
+        {
+            double cropPixels = _cropValue * 5;
+            if (SubtitleAreaBorder != null)
+                SubtitleAreaBorder.MinHeight = _subAreaHeight + (cropPixels / 2);
+            
+            FlashPurpleLines();
+            UpdateSubtitleStats();
+        }
+
+        private void CropIncBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeCrop(5);
+        }
+
+        private void CropDecBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeCrop(-5);
+        }
+
+        private void ChangeCrop(double delta)
+        {
+            _cropValue = Math.Max(0, _cropValue + delta);
+            
+            // Zoom the video
+            double zoom = 1.0 + (_cropValue / 100.0);
+            if (VideoScale != null)
+            {
+                VideoScale.ScaleX = zoom;
+                VideoScale.ScaleY = zoom;
+            }
+
+            // Expose the custom black bar space (top)
+            double cropPixels = _cropValue * 5; 
+            
+            if (TopCropRect != null)
+                TopCropRect.Height = cropPixels;
+
+            // Shift focus to the layout updater for the bottom bar and stats
+            UpdateSubtitleLayout();
+        }
+
+        private int _cropFlashCount = 0;
+
+        private async void FlashPurpleLines()
+        {
+            _cropFlashCount++;
+            if (TopCropRect != null) TopCropRect.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Purple);
+            if (SubtitleAreaBorder != null) SubtitleAreaBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Purple);
+            
+            await Task.Delay(1500);
+            
+            _cropFlashCount--;
+            if (_cropFlashCount == 0)
+            {
+                if (TopCropRect != null) TopCropRect.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Transparent);
+                if (SubtitleAreaBorder != null) SubtitleAreaBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Transparent);
+            }
+        }
+
+        private void HelpBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string helpText = "Keyboard Shortcuts:\n\n" +
+                              "Space : Play / Pause\n" +
+                              "F / Esc : Toggle Fullscreen\n" +
+                              "Left / Right Arrows : Skip -/+ 10s\n" +
+                              "Up / Down Arrows : Skip -/+ 1m\n" +
+                              "W / S : Increase/Decrease Subtitle Font Size\n" +
+                              "[ / ] : Decrease/Increase Subtitle Width\n" +
+                              "- / = : Decrease/Increase Crop (Zoom/Remove Black Bars)\n" +
+                              "M / N : Increase/Decrease Subtitle Area Bounds";
+            System.Windows.MessageBox.Show(helpText, "Shortcuts Help", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
         }
 
         private void FullscreenBtn_Click(object sender, RoutedEventArgs e)
@@ -434,10 +540,11 @@ namespace XanderVideoPlayer
 
         private void UpdateSubtitleStats()
         {
-            if (SizeStatus == null || HeightStatus == null || WidthStatus == null) return;
+            if (SizeStatus == null || HeightStatus == null || WidthStatus == null || CropStatus == null) return;
             SizeStatus.Text = $"S:{(int)SubtitleText.FontSize}";
             HeightStatus.Text = $"H:{(int)SubPosSlider.Value}";
             WidthStatus.Text = $"W:{(int)SubtitleText.MaxWidth}";
+            CropStatus.Text = $"C:{(int)_cropValue}";
         }
     }
 }

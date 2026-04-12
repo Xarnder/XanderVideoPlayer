@@ -13,24 +13,34 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <vlc:VideoView x:Name="videoView" Grid.Row="0" Margin="0,0,0,120" />
+        <Border x:Name="VideoContainer" Grid.Row="0" ClipToBounds="True" Panel.ZIndex="0">
+            <vlc:VideoView x:Name="videoView" RenderTransformOrigin="0.5, 0.5">
+                <vlc:VideoView.RenderTransform>
+                    <ScaleTransform x:Name="VideoScale" ScaleX="1" ScaleY="1" />
+                </vlc:VideoView.RenderTransform>
+                
+                <Grid>
+                    <Border x:Name="TopCropRect" VerticalAlignment="Top" Height="0" Background="Black" BorderBrush="Transparent" BorderThickness="0,0,0,2" Panel.ZIndex="100" />
 
-        <Border Grid.Row="0" VerticalAlignment="Bottom" Height="Auto" MinHeight="120" Background="Black" ClipToBounds="False">
-            <Grid>
-                <ProgressBar x:Name="ExtractionProgress" Height="4" VerticalAlignment="Top" 
-                             Background="Transparent" BorderThickness="0" Foreground="#1E90FF"
-                             IsIndeterminate="True" Visibility="Collapsed" />
-                <TextBlock x:Name="SubtitleText" 
-                           Text="Open a video file to begin..." 
-                           Foreground="White" FontSize="32" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" 
-                           TextWrapping="Wrap" TextAlignment="Center"
-                           MaxWidth="900">
-                    <TextBlock.RenderTransform>
-                        <TranslateTransform x:Name="SubTransform" Y="0" />
-                    </TextBlock.RenderTransform>
-                </TextBlock>
-            </Grid>
+                    <Border x:Name="SubtitleAreaBorder" VerticalAlignment="Bottom" Height="Auto" MinHeight="120" Background="Black" BorderBrush="Transparent" BorderThickness="0,2,0,0" ClipToBounds="False" Panel.ZIndex="99">
+                        <Grid>
+                            <ProgressBar x:Name="ExtractionProgress" Height="4" VerticalAlignment="Top" 
+                                         Background="Transparent" BorderThickness="0" Foreground="#1E90FF"
+                                         IsIndeterminate="True" Visibility="Collapsed" />
+                            <TextBlock x:Name="SubtitleText" 
+                                       Text="Open a video file to begin..." 
+                                       Foreground="White" FontSize="32" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                       TextWrapping="Wrap" TextAlignment="Center"
+                                       MaxWidth="900">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform x:Name="SubTransform" Y="0" />
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </vlc:VideoView>
         </Border>
 
         <Grid x:Name="ControlsGrid" Grid.Row="1" Height="50" Background="#202020">
@@ -43,7 +53,9 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto" x:Name="FullscreenColumn"/>
+                <ColumnDefinition Width="Auto" x:Name="HelpColumn"/>
                 <ColumnDefinition Width="Auto" x:Name="StatsColumn"/>
             </Grid.ColumnDefinitions>
 
@@ -74,22 +86,32 @@
 
             <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="5">
                 <TextBlock Text="Audio:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox x:Name="AudioCombo" Width="100" SelectionChanged="AudioCombo_SelectionChanged" Margin="0,0,10,0"/>
+                <ComboBox x:Name="AudioCombo" Width="100" SelectionChanged="AudioCombo_SelectionChanged" Margin="0,0,10,0" Focusable="False"/>
             </StackPanel>
 
             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="5,5,10,5">
                 <TextBlock Text="Internal Sub:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox x:Name="SubTrackCombo" Width="120" SelectionChanged="SubTrackCombo_SelectionChanged" SelectedIndex="0">
+                <ComboBox x:Name="SubTrackCombo" Width="120" SelectionChanged="SubTrackCombo_SelectionChanged" SelectedIndex="0" Focusable="False">
                 </ComboBox>
             </StackPanel>
 
-            <Button x:Name="FullscreenBtn" Grid.Column="8" Content="Fullscreen" Foreground="White" Background="#404040" 
+            <StackPanel Grid.Column="8" Orientation="Horizontal" Margin="5,5,10,5">
+                <TextBlock Text="Crop:" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <Button x:Name="CropIncBtn" Content="+" Foreground="White" Background="#404040" BorderThickness="0" Width="25" Click="CropIncBtn_Click" Focusable="False" Margin="0,0,2,0"/>
+                <Button x:Name="CropDecBtn" Content="-" Foreground="White" Background="#404040" BorderThickness="0" Width="25" Click="CropDecBtn_Click" Focusable="False"/>
+            </StackPanel>
+
+            <Button x:Name="FullscreenBtn" Grid.Column="9" Content="Fullscreen" Foreground="White" Background="#404040" 
                     BorderThickness="0" Margin="5,5,5,5" Width="75" Click="FullscreenBtn_Click" Focusable="False"/>
 
-            <StackPanel Grid.Column="9" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
+            <Button x:Name="HelpBtn" Grid.Column="10" Content="?" Foreground="White" Background="#1E90FF" 
+                    BorderThickness="0" Margin="5,5,5,5" Width="25" FontWeight="Bold" Click="HelpBtn_Click" Focusable="False"/>
+
+            <StackPanel Grid.Column="11" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,10,0">
                 <TextBlock x:Name="SizeStatus" Text="S:32" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
                 <TextBlock x:Name="HeightStatus" Text="H:0" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
-                <TextBlock x:Name="WidthStatus" Text="W:900" Foreground="#888888" FontSize="11"/>
+                <TextBlock x:Name="WidthStatus" Text="W:900" Foreground="#888888" FontSize="11" Margin="0,0,10,0"/>
+                <TextBlock x:Name="CropStatus" Text="C:0" Foreground="#888888" FontSize="11"/>
             </StackPanel>
         </Grid>
     </Grid>
